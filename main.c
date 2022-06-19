@@ -1,4 +1,4 @@
-#include<stdio.h>
+-#include<stdio.h>
 #include<windows.h>
 #include<conio.h>
 #include<stdlib.h>
@@ -25,9 +25,14 @@ int score; //점수 저장  --reset함수에 의해 초기화됨
 int best_score = 0; //최고 점수 저장 --reset함수에 의해 초기화 되지 않음 
 int last_score = 0; //마지막 점수 저장  --reset함수에 의해 초기화 되지 않음
 int dir; //이동방향 저장 
-int key; //입력받은 키 저장 
-int status_on = 0; // 개발자용 status 표시활성화 변수.. 게임중에 S키를 누르면 활성 
-
+int key; //입력받은 키 저장  
+void CursorView()
+{
+    CONSOLE_CURSOR_INFO cursorInfo = { 0, };
+    cursorInfo.dwSize = 1; //커서 굵기 (1 ~ 100)
+    cursorInfo.bVisible = FALSE; //커서 Visible TRUE(보임) FALSE(숨김)
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
+}
 void gotoxy(int x, int y, char* s) { //x값을 2x로 변경, 좌표값에 바로 문자열을 입력할 수 있도록 printf함수 삽입  
     COORD pos = { 2 * x,y };
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
@@ -41,7 +46,7 @@ void move(int dir); //뱀머리를 이동
 void pause(void); //일시정지 
 void game_over(void); //게임 오버를 확인 
 void food(void); // 음식 생성 
-void status(void); // 개발자용 status표시  
+ 
 
 ///////////////////////////// 시작 ///////////////////////////////
 enum ColorType {
@@ -62,6 +67,7 @@ enum ColorType {
     YELLOW,
     WHITE
 } COLOR;
+
 int main() {
     title();
 
@@ -82,18 +88,12 @@ int main() {
         case PAUSE: // P키를 누르면 일시정지 
             pause();
             break;
-        case 115: //S키를 누르면 개발자용 status를 활성화 시킴  
-            if (status_on == 0) status_on = 1;
-            else status_on = 0;
-            key = 0;
-            break;
         case ESC: //ESC키를 누르면 프로그램 종료 
             exit(0);
         }
         move(dir);
-
-        if (status_on == 1) status(); // status표시 
-    }
+    } 
+    system("pause");
 }
 
 ///////////////////////////MAIN END////////////////////////////////
@@ -153,7 +153,7 @@ void reset(void) {
 
 void draw_map(void) { //맵 테두리 그리는 함수 
     int i, j;
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), GRAY);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), GREEN);
     for (i = 0; i < MAP_WIDTH; i++) {
         gotoxy(MAP_X + i, MAP_Y, "■");
     }
@@ -198,7 +198,7 @@ void move(int dir) {
     if (dir == RIGHT) ++x[0];
     if (dir == UP) --y[0];
     if (dir == DOWN) ++y[0];
-    gotoxy(MAP_X + x[i], MAP_Y + y[i], "♣"); //새로운 머리좌표값에 머리를 그림 
+    gotoxy(MAP_X + x[i], MAP_Y + y[i], "♠"); //새로운 머리좌표값에 머리를 그림 
 }
 
 void pause(void) { // p키를 눌렀을 경우 게임을 일시 정지 
@@ -272,19 +272,4 @@ void food(void) {
         break;
 
     }
-}
-
-void status(void) { //각종 스텟을 볼수 있는 함수 
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y, "head= ");
-    printf("%2d,%2d", x[0], y[0]);
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y + 1, "food= ");
-    printf("%2d,%2d", food_x, food_y);
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y + 2, "leng= ");
-    printf("%2d", length);
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y + 3, "key= ");
-    printf("%3d", key);
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y + 4, "spd= ");
-    printf("%3d", speed);
-    gotoxy(MAP_X + MAP_WIDTH + 1, MAP_Y + 6, "score= ");
-    printf("%3d", score);
 }

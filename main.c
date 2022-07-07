@@ -11,6 +11,7 @@
 #define DOWN 80
 #define PAUSE 112
 #define ESC 27
+#define SUBMIT 4
 
 #define MAP_X 3
 #define MAP_Y 2
@@ -19,6 +20,7 @@
 
 int x[100], y[100]; //x,y 좌표값을 저장 총 100개 
 int food_x, food_y; //food의 좌표값을 저장 
+int item_x, item_y; //item의 좌표값을 저장
 int length; //몸길이를 기억 
 int speed; //게임 속도 
 int score; //점수 저장  --reset함수에 의해 초기화됨
@@ -39,14 +41,17 @@ void gotoxy(int x, int y, char* s) { //x값을 2x로 변경, 좌표값에 바로
     printf("%s", s);
 }
 
+
 void title(void); //게임 시작화면 
 void reset(void); //게임을 초기화 
 void draw_map(void); // 게임판 테두리를 그림 
 void move(int dir); //뱀머리를 이동 
 void pause(void); //일시정지 
 void game_over(void); //게임 오버를 확인 
-void food(void); // 음식 생성 
- 
+void food(void); // 음식 생성
+void item(void); // 아이템 생성
+void cursor(int n); //콘솔 커서 숨기기
+
 
 ///////////////////////////// 시작 ///////////////////////////////
 enum ColorType {
@@ -65,7 +70,8 @@ enum ColorType {
     RED,
     PURPLE,
     YELLOW,
-    WHITE
+    WHITE,
+    Aqua,
 } COLOR;
 
 int main() {
@@ -92,8 +98,12 @@ int main() {
             exit(0);
         }
         move(dir);
-    } 
+    }
     system("pause");
+
+
+
+    return 0;
 }
 
 ///////////////////////////MAIN END////////////////////////////////
@@ -106,16 +116,13 @@ void title(void) {
     for (i = MAP_Y + 1; i < MAP_Y + MAP_HEIGHT - 1; i++) { // 맵 테두리 안쪽을 빈칸으로 채움 
         for (j = MAP_X + 1; j < MAP_X + MAP_WIDTH - 1; j++) gotoxy(j, i, "  ");
     }
-
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), DarkYellow);
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 5, "+--------------------------+");
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 6, "|        꼬물꼬물이        |");
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 7, "+--------------------------+");
 
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 9, " < PRESS ANY KEY TO START > ");
 
-    gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 11, "   ◇ ←,→,↑,↓ : Move    ");
-    gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 12, "   ◇ P : Pause             ");
-    gotoxy(MAP_X + (MAP_WIDTH / 2) - 7, MAP_Y + 13, "   ◇ ESC : Quit              ");
 
     while (1) {
         if (kbhit()) { //키입력받음 
@@ -137,9 +144,9 @@ void reset(void) {
     system("cls"); //화면을 지움 
     draw_map(); //맵 테두리를 그림 
     while (kbhit()) getch(); //버퍼에 있는 키값을 버림 
-
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), DarkYellow);
     dir = LEFT; // 방향 초기화  
-    speed = 100; // 속도 초기화 
+    speed = 110; // 속도 초기화 
     length = 5; //뱀 길이 초기화 
     score = 0; //점수 초기화 
     for (i = 0; i < length; i++) { //뱀 몸통값 입력 
@@ -147,13 +154,13 @@ void reset(void) {
         y[i] = MAP_HEIGHT / 2;
         gotoxy(MAP_X + x[i], MAP_Y + y[i], "●");
     }
-    gotoxy(MAP_X + x[0], MAP_Y + y[0], "♣"); //뱀 머리 그림 
+    gotoxy(MAP_X + x[0], MAP_Y + y[0], "⊙"); //뱀 머리 그림 
     food(); // food 생성  
 }
 
 void draw_map(void) { //맵 테두리 그리는 함수 
     int i, j;
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), GREEN);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), BLUE);
     for (i = 0; i < MAP_WIDTH; i++) {
         gotoxy(MAP_X + i, MAP_Y, "■");
     }
@@ -187,7 +194,7 @@ void move(int dir) {
             return;
         }
     }
-
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), DarkYellow);
     gotoxy(MAP_X + x[length - 1], MAP_Y + y[length - 1], "  "); //몸통 마지막을 지움 
     for (i = length - 1; i > 0; i--) { //몸통좌표를 한칸씩 옮김 
         x[i] = x[i - 1];
@@ -198,7 +205,10 @@ void move(int dir) {
     if (dir == RIGHT) ++x[0];
     if (dir == UP) --y[0];
     if (dir == DOWN) ++y[0];
-    gotoxy(MAP_X + x[i], MAP_Y + y[i], "♠"); //새로운 머리좌표값에 머리를 그림 
+    gotoxy(MAP_X + x[i], MAP_Y + y[i], "⊙"); //새로운 머리좌표값에 머리를 그림 
+
+    cursor(0);//cursor(1); 커서 보이기, cursor(0); 커서 숨기기
+
 }
 
 void pause(void) { // p키를 눌렀을 경우 게임을 일시 정지 
@@ -219,12 +229,11 @@ void pause(void) { // p키를 눌렀을 경우 게임을 일시 정지
                 key = getch();
             } while (key == 224);
         }
-
     }
 }
 
 void game_over(void) { //게임종료 함수 
-    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), SkyBlue);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), DarkYellow);
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 6, MAP_Y + 5, "+----------------------+");
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 6, MAP_Y + 6, "|      GAME OVER..     |");
     gotoxy(MAP_X + (MAP_WIDTH / 2) - 6, MAP_Y + 7, "+----------------------+");
@@ -259,7 +268,7 @@ void food(void) {
 
         for (i = 0; i < length; i++) { //food가 뱀 몸통과 겹치는지 확인  
             if (food_x == x[i] && food_y == y[i]) {
-                food_crush_on = 1; //겹치면 food_crush_on 를 on 
+                food_crush_on = 1; //겹치면 item_crush_on 를 on 
                 r++;
                 break;
             }
@@ -268,8 +277,50 @@ void food(void) {
         if (food_crush_on == 1) continue; //겹쳤을 경우 while문을 다시 시작 
         SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), RED);
         gotoxy(MAP_X + food_x, MAP_Y + food_y, "♥"); //안겹쳤을 경우 좌표값에 food를 찍고 
-        speed -= 3; //속도 증가 
+        speed -= 2; //속도 증가 
         break;
 
     }
+}
+
+void item(void) {
+    int i;
+
+    int item_crush_on = 0;//food가 뱀 몸통좌표에 생길 경우 on 
+    int t = 0; //난수 생성에 사동되는 변수 
+    gotoxy(MAP_X, MAP_Y + MAP_HEIGHT, " YOUR SCORE: "); //점수표시 
+    printf("%3d, LAST SCORE: %3d, BEST SCORE: %3d", score, last_score, best_score);
+
+    while (1) {
+        item_crush_on = 0;
+        srand((unsigned)time(NULL) + t); //난수표생성 
+        item_x = (rand() % (MAP_WIDTH - 2)) + 1;    //난수를 좌표값에 넣음 
+        item_y = (rand() % (MAP_HEIGHT - 2)) + 1;
+
+        for (i = 0; i < length; i++) { //food가 뱀 몸통과 겹치는지 확인  
+            if (item_x == x[i] && item_y == y[i]) {
+                item_crush_on = 1; //겹치면 item_crush_on 를 on 
+                t++;
+                break;
+            }
+        }
+
+        if (item_crush_on == 1) continue; //겹쳤을 경우 while문을 다시 시작 
+        SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), GRAY);
+        gotoxy(MAP_X + item_x, MAP_Y + item_y, "★"); //안겹쳤을 경우 좌표값에 item를 찍음
+
+        break;
+
+    }
+}
+
+void cursor(int n) { //뱀 이동시 커서 숨기는 함수
+    HANDLE hConsole;
+    CONSOLE_CURSOR_INFO ConsoleCursor;
+
+    hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    ConsoleCursor.bVisible = n;
+    ConsoleCursor.dwSize = 1;
+
+    SetConsoleCursorInfo(hConsole, &ConsoleCursor);
 }
